@@ -3,7 +3,7 @@
  * Parses and validates did:signum URIs according to W3C DID specification
  */
 
-import type { ParsedDid, SignumNetwork, SignumDidType } from "@/types/did";
+import type { ParsedDid, SignumNetwork, SignumDidType } from "../types/did.js";
 
 /**
  * Parse error class for DID parsing failures

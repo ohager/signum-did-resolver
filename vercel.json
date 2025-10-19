@@ -1,8 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "tsc && tsc-alias",
+  "buildCommand": "yarn build",
   "outputDirectory": "dist",
-  "installCommand": "yarn install",
   "headers": [
     {
       "source": "/api/(.*)",

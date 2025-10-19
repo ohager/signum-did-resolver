@@ -8,7 +8,7 @@ import type {
   DidDocumentMetadata,
   ParsedDid,
   VerificationMethod,
-} from "@/types/did";
+} from "../types/did.js";
 
 /**
  * Abstract base class for DID document builders

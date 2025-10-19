@@ -3,13 +3,13 @@
  * Builds DID documents for Signum accounts with optional SRC44 data
  */
 
-import { BaseDidDocumentBuilder } from "./base-builder";
+import { BaseDidDocumentBuilder } from "./base-builder.js";
 import type {
   DidDocument,
   DidDocumentMetadata,
   ParsedDid,
   Src44Data,
-} from "@/types/did";
+} from "../types/did.js";
 /**
  * Account data required for building DID document
  */

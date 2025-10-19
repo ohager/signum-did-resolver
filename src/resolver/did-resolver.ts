@@ -5,17 +5,15 @@
 
 import { Ledger } from "@signumjs/core";
 import { src44 } from "@signumjs/standards";
-import { DidParser } from "@/parser";
-import {
-  TransactionDidDocumentBuilder,
-  AccountDidDocumentBuilder,
-} from "@/builders";
+import { DidParser } from "../parser/did-parser.js";
+import { TransactionDidDocumentBuilder } from "../builders/transaction-builder.js";
+import { AccountDidDocumentBuilder } from "../builders/account-builder.js";
 import type {
   DidResolutionResult,
   ParsedDid,
   DIDResolutionError,
   Src44Data,
-} from "@/types/did";
+} from "../types/did.js";
 
 /**
  * Signum DID Resolver

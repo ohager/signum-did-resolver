@@ -5,9 +5,9 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { SignumDidResolver } from "../../src/resolver";
-import { DidParser } from "../../src/parser";
-import type { DIDResolutionError, SignumNetwork } from "../../src/types/did";
+import { SignumDidResolver } from "../../src/resolver/did-resolver.js";
+import { DidParser } from "../../src/parser/did-parser.js";
+import type { DIDResolutionError, SignumNetwork } from "../../src/types/did.js";
 import { Ledger, LedgerClientFactory } from "@signumjs/core";
 
 /**
