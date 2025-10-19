@@ -2,4 +2,4 @@
  * DID Parser exports
  */
 
-export * from './did-parser.js';
+export * from "./did-parser.js";

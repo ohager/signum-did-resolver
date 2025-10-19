@@ -13,12 +13,12 @@ export type Src44Data = src44.SRC44Descriptor;
 /**
  * Supported Signum networks
  */
-export type SignumNetwork = 'mainnet' | 'testnet';
+export type SignumNetwork = "mainnet" | "testnet";
 
 /**
  * Supported DID entity types on Signum blockchain
  */
-export type SignumDidType = 'tx' | 'acc' | 'alias' | 'contract' | 'token';
+export type SignumDidType = "tx" | "acc" | "alias" | "contract" | "token";
 
 /**
  * Parsed DID components
@@ -27,7 +27,7 @@ export interface ParsedDid {
   /** Full DID string */
   did: string;
   /** DID method (always 'signum') */
-  method: 'signum';
+  method: "signum";
   /** Network identifier (defaults to 'mainnet' if not specified) */
   network: SignumNetwork;
   /** Entity type */
@@ -61,7 +61,7 @@ export interface ServiceEndpoint {
  * @see https://www.w3.org/TR/did-core/#did-document-properties
  */
 export interface DidDocument {
-  '@context': string | string[];
+  "@context": string | string[];
   id: string;
   controller?: string | string[];
   verificationMethod?: VerificationMethod[];
@@ -123,9 +123,9 @@ export interface DidResolutionResult {
  * @see https://w3c.github.io/did-resolution/#errors
  */
 export type DIDResolutionError =
-  | 'invalidDid'
-  | 'notFound'
-  | 'representationNotSupported'
-  | 'methodNotSupported'
-  | 'invalidDidDocument'
-  | 'internalError';
+  | "invalidDid"
+  | "notFound"
+  | "representationNotSupported"
+  | "methodNotSupported"
+  | "invalidDidDocument"
+  | "internalError";

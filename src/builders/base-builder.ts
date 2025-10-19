@@ -8,7 +8,7 @@ import type {
   DidDocumentMetadata,
   ParsedDid,
   VerificationMethod,
-} from '@/types/did';
+} from "@/types/did";
 
 /**
  * Abstract base class for DID document builders
@@ -34,7 +34,7 @@ export abstract class BaseDidDocumentBuilder {
    */
   protected createBaseDocument(): DidDocument {
     return {
-      '@context': ['https://www.w3.org/ns/did/v1'],
+      "@context": ["https://www.w3.org/ns/did/v1"],
       id: this.parsedDid.did,
     };
   }
@@ -45,11 +45,11 @@ export abstract class BaseDidDocumentBuilder {
   protected createVerificationMethod(
     id: string,
     controller: string,
-    publicKeyMultibase: string
+    publicKeyMultibase: string,
   ): VerificationMethod {
     return {
       id,
-      type: 'Ed25519VerificationKey2020',
+      type: "Ed25519VerificationKey2020",
       controller,
       publicKeyMultibase,
     };
@@ -58,7 +58,10 @@ export abstract class BaseDidDocumentBuilder {
   /**
    * Create base document metadata
    */
-  protected createBaseMetadata(created?: string, updated?: string): DidDocumentMetadata {
+  protected createBaseMetadata(
+    created?: string,
+    updated?: string,
+  ): DidDocumentMetadata {
     return {
       created,
       updated,

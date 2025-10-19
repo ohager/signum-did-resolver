@@ -3,8 +3,13 @@
  * Builds DID documents for Signum accounts with optional SRC44 data
  */
 
-import { BaseDidDocumentBuilder } from './base-builder';
-import type { DidDocument, DidDocumentMetadata, ParsedDid, Src44Data } from '@/types/did';
+import { BaseDidDocumentBuilder } from "./base-builder";
+import type {
+  DidDocument,
+  DidDocumentMetadata,
+  ParsedDid,
+  Src44Data,
+} from "@/types/did";
 /**
  * Account data required for building DID document
  */
@@ -38,29 +43,34 @@ export class AccountDidDocumentBuilder extends BaseDidDocumentBuilder {
     const doc = this.createBaseDocument();
 
     // Add also known as (numeric ID if RS-address was used, or vice versa)
-    const isRSAddress = this.parsedDid.identifier.startsWith('S-') ||
-                        this.parsedDid.identifier.startsWith('TS-');
+    const isRSAddress =
+      this.parsedDid.identifier.startsWith("S-") ||
+      this.parsedDid.identifier.startsWith("TS-");
 
     if (isRSAddress) {
-      const numericDid = `did:signum:${this.parsedDid.network === 'mainnet' ? '' : this.parsedDid.network + ':'}acc:${this.accountData.accountId}`;
+      const numericDid = `did:signum:${this.parsedDid.network === "mainnet" ? "" : this.parsedDid.network + ":"}acc:${this.accountData.accountId}`;
       doc.alsoKnownAs = [numericDid];
     } else {
-      const rsDid = `did:signum:${this.parsedDid.network === 'mainnet' ? '' : this.parsedDid.network + ':'}acc:${this.accountData.accountRS}`;
+      const rsDid = `did:signum:${this.parsedDid.network === "mainnet" ? "" : this.parsedDid.network + ":"}acc:${this.accountData.accountRS}`;
       doc.alsoKnownAs = [rsDid];
     }
 
     // Add verification method if public key is available
     if (this.accountData.publicKey) {
-      doc['@context'] = [
-        'https://www.w3.org/ns/did/v1',
-        'https://w3id.org/security/suites/ed25519-2020/v1',
+      doc["@context"] = [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/ed25519-2020/v1",
       ];
 
       const verificationMethodId = `${this.parsedDid.did}#key-1`;
       const publicKeyMultibase = `f${this.accountData.publicKey.toLowerCase()}`;
 
       doc.verificationMethod = [
-        this.createVerificationMethod(verificationMethodId, this.parsedDid.did, publicKeyMultibase),
+        this.createVerificationMethod(
+          verificationMethodId,
+          this.parsedDid.did,
+          publicKeyMultibase,
+        ),
       ];
 
       // Account can authenticate

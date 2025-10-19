@@ -3,7 +3,7 @@
  * Parses and validates did:signum URIs according to W3C DID specification
  */
 
-import type { ParsedDid, SignumNetwork, SignumDidType } from '@/types/did';
+import type { ParsedDid, SignumNetwork, SignumDidType } from "@/types/did";
 
 /**
  * Parse error class for DID parsing failures
@@ -11,10 +11,10 @@ import type { ParsedDid, SignumNetwork, SignumDidType } from '@/types/did';
 export class DidParseError extends Error {
   constructor(
     message: string,
-    public readonly did?: string
+    public readonly did?: string,
   ) {
     super(message);
-    this.name = 'DidParseError';
+    this.name = "DidParseError";
   }
 }
 
@@ -47,12 +47,21 @@ export class DidParser {
   /**
    * Valid Signum networks
    */
-  private static readonly VALID_NETWORKS: SignumNetwork[] = ['mainnet', 'testnet'];
+  private static readonly VALID_NETWORKS: SignumNetwork[] = [
+    "mainnet",
+    "testnet",
+  ];
 
   /**
    * Valid DID entity types
    */
-  private static readonly VALID_TYPES: SignumDidType[] = ['tx', 'acc', 'alias', 'contract', 'token'];
+  private static readonly VALID_TYPES: SignumDidType[] = [
+    "tx",
+    "acc",
+    "alias",
+    "contract",
+    "token",
+  ];
 
   /**
    * Parse a Signum DID URI into its components
@@ -72,14 +81,13 @@ export class DidParser {
    * ```
    */
   public parse(did: string): ParsedDid {
-
     const trimmedDid = did.trim();
 
     if (!trimmedDid) {
-      throw new DidParseError('DID must be a non-empty string', did);
+      throw new DidParseError("DID must be a non-empty string", did);
     }
 
-    if (!trimmedDid.startsWith('did:')) {
+    if (!trimmedDid.startsWith("did:")) {
       throw new DidParseError('DID must start with "did:"', trimmedDid);
     }
 
@@ -87,15 +95,15 @@ export class DidParser {
 
     if (!match || !match.groups) {
       throw new DidParseError(
-        'Invalid Signum DID format. Expected: did:signum:[network]:[type]:[identifier]',
-        trimmedDid
+        "Invalid Signum DID format. Expected: did:signum:[network]:[type]:[identifier]",
+        trimmedDid,
       );
     }
 
     const { network, type, identifier } = match.groups;
 
     // Network defaults to mainnet if not specified
-    const parsedNetwork = (network || 'mainnet') as SignumNetwork;
+    const parsedNetwork = (network || "mainnet") as SignumNetwork;
     const parsedType = type as SignumDidType;
 
     // Validate network
@@ -110,7 +118,7 @@ export class DidParser {
 
     // Validate identifier is not empty
     if (!identifier || identifier.trim().length === 0) {
-      throw new DidParseError('Identifier cannot be empty', trimmedDid);
+      throw new DidParseError("Identifier cannot be empty", trimmedDid);
     }
 
     // Type-specific identifier validation
@@ -118,7 +126,7 @@ export class DidParser {
 
     return {
       did: trimmedDid,
-      method: 'signum',
+      method: "signum",
       network: parsedNetwork,
       type: parsedType,
       identifier: identifier.trim(),
@@ -165,9 +173,13 @@ export class DidParser {
    * // 'did:signum:testnet:acc:S-9K9L-4CB5-88Y5-F5G4Z'
    * ```
    */
-  public build(type: SignumDidType, identifier: string, network: SignumNetwork = 'mainnet'): string {
+  public build(
+    type: SignumDidType,
+    identifier: string,
+    network: SignumNetwork = "mainnet",
+  ): string {
     // Include network in DID only if it's not mainnet
-    if (network === 'mainnet') {
+    if (network === "mainnet") {
       return `did:signum:${type}:${identifier}`;
     }
     return `did:signum:${network}:${type}:${identifier}`;
@@ -181,44 +193,49 @@ export class DidParser {
    * @param did - Full DID (for error reporting)
    * @throws {DidParseError} If identifier format is invalid
    */
-  private validateIdentifier(type: SignumDidType, identifier: string, did: string): void {
+  private validateIdentifier(
+    type: SignumDidType,
+    identifier: string,
+    did: string,
+  ): void {
     const trimmed = identifier.trim();
 
     switch (type) {
-      case 'tx':
-      case 'contract':
-      case 'token':
+      case "tx":
+      case "contract":
+      case "token":
         // Numeric ID (18-23 digits)
         if (!/^\d{18,23}$/.test(trimmed)) {
           throw new DidParseError(
             `Invalid ${type} identifier. Must be 18-23 digit numeric ID`,
-            did
+            did,
           );
         }
         break;
 
-      case 'acc':
+      case "acc":
         // Account can be either numeric ID or RS-address
         const isNumeric = /^\d{18,23}$/.test(trimmed);
-        const isRSAddress = /^T?S-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{5}$/.test(trimmed);
+        const isRSAddress =
+          /^T?S-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{5}$/.test(trimmed);
 
         if (!isNumeric && !isRSAddress) {
           throw new DidParseError(
-            'Invalid account identifier. Must be numeric ID or RS-address (S-XXXX-XXXX-XXXX-XXXXX)',
-            did
+            "Invalid account identifier. Must be numeric ID or RS-address (S-XXXX-XXXX-XXXX-XXXXX)",
+            did,
           );
         }
         break;
 
-      case 'alias':
+      case "alias":
         // Alias can be numeric ID or [tld:]name format
         const isAliasNumeric = /^\d{18,23}$/.test(trimmed);
         const isAliasName = /^(\w{1,40}:)?\w{1,100}$/.test(trimmed);
 
         if (!isAliasNumeric && !isAliasName) {
           throw new DidParseError(
-            'Invalid alias identifier. Must be numeric ID or [tld:]name format',
-            did
+            "Invalid alias identifier. Must be numeric ID or [tld:]name format",
+            did,
           );
         }
         break;

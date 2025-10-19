@@ -2,4 +2,4 @@
  * Resolver exports
  */
 
-export * from './did-resolver';
+export * from "./did-resolver";
