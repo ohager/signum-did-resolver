@@ -204,8 +204,7 @@ export class DidParser {
       case "tx":
       case "contract":
       case "token":
-        // Numeric ID (18-23 digits)
-        if (!/^\d{18,23}$/.test(trimmed)) {
+        if (!/^\d{10,24}$/.test(trimmed)) {
           throw new DidParseError(
             `Invalid ${type} identifier. Must be 18-23 digit numeric ID`,
             did,
