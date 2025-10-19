@@ -184,8 +184,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.setHeader("CDN-Cache-Control", "public, max-age=31536000");
       } else {
         // Account DIDs can change - cache for shorter period
-        res.setHeader("Cache-Control", "public, max-age=300, s-maxage=60"); // 5 min browser, 1 min CDN
-        res.setHeader("CDN-Cache-Control", "public, max-age=60");
+        res.setHeader("Cache-Control", "public, max-age=120, s-maxage=120"); // 5 min browser, 1 min CDN
+        res.setHeader("CDN-Cache-Control", "public, max-age=120");
       }
     } else {
       // Don't cache errors

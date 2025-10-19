@@ -8,6 +8,9 @@ import { src44 } from "@signumjs/standards";
 import { DidParser } from "../parser/did-parser.js";
 import { TransactionDidDocumentBuilder } from "../builders/transaction-builder.js";
 import { AccountDidDocumentBuilder } from "../builders/account-builder.js";
+import { AliasDidDocumentBuilder } from "../builders/alias-builder.js";
+import { ContractDidDocumentBuilder } from "../builders/contract-builder.js";
+import { TokenDidDocumentBuilder } from "../builders/token-builder.js";
 import type {
   DidResolutionResult,
   ParsedDid,
@@ -52,12 +55,11 @@ export class SignumDidResolver {
         case "acc":
           return await this.resolveAccount(parsedDid);
         case "alias":
+          return await this.resolveAlias(parsedDid);
         case "contract":
+          return await this.resolveContract(parsedDid);
         case "token":
-          return this.createErrorResult(
-            "methodNotSupported",
-            `DID type '${parsedDid.type}' not yet implemented`,
-          );
+          return await this.resolveToken(parsedDid);
         default:
           return this.createErrorResult(
             "invalidDid",
@@ -178,6 +180,172 @@ export class SignumDidResolver {
         return this.createErrorResult(
           "notFound",
           `Account ${parsedDid.identifier} not found`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Resolve an alias DID
+   */
+  private async resolveAlias(
+    parsedDid: ParsedDid,
+  ): Promise<DidResolutionResult> {
+    try {
+      // Parse TLD and name from identifier
+      // Format: <tld>:<name> or just <name> (defaults to 'signum' TLD)
+      let tld = "signum";
+      let aliasName = parsedDid.identifier;
+
+      // Check if identifier contains TLD
+      if (parsedDid.identifier.includes(":")) {
+        const parts = parsedDid.identifier.split(":");
+        if (parts.length === 2) {
+          tld = parts[0];
+          aliasName = parts[1];
+        }
+      }
+
+      // Fetch alias from blockchain
+      const alias = await this.ledgerClient.alias.getAliasByName(aliasName);
+
+      // Parse SRC44 from aliasURI (which is actually the description field)
+      let src44: Src44Data | undefined;
+      if (alias.aliasURI) {
+        src44 = this.getSrc44Data(alias.aliasURI);
+      }
+
+      // Build DID document using builder
+      const builder = new AliasDidDocumentBuilder(parsedDid, {
+        aliasId: alias.alias,
+        aliasName: alias.aliasName,
+        tld,
+        aliasURI: alias.aliasURI,
+        accountId: alias.account,
+        accountRS: alias.accountRS,
+        timestamp: alias.timestamp,
+        src44,
+      });
+
+      const { didDocument, didDocumentMetadata } = await builder.build();
+
+      return {
+        didResolutionMetadata: {
+          contentType: "application/did+ld+json",
+        },
+        didDocument,
+        didDocumentMetadata,
+      };
+    } catch (error) {
+      // Check if alias not found
+      if (error instanceof Error && error.message.includes("Unknown alias")) {
+        return this.createErrorResult(
+          "notFound",
+          `Alias ${parsedDid.identifier} not found`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Resolve a contract DID
+   */
+  private async resolveContract(
+    parsedDid: ParsedDid,
+  ): Promise<DidResolutionResult> {
+    try {
+      // Fetch contract from blockchain
+      const contract = await this.ledgerClient.contract.getContract(
+        parsedDid.identifier,
+      );
+
+      let src44: Src44Data | undefined;
+      if (contract.description) {
+        src44 = this.getSrc44Data(contract.description);
+      }
+
+      // Build DID document using builder
+      const builder = new ContractDidDocumentBuilder(parsedDid, {
+        at: contract.at,
+        atRS: contract.atRS,
+        creator: contract.creator,
+        creatorRS: contract.creatorRS,
+        creationBlock: contract.creationBlock,
+        creationBlockTimestamp: 0, // TODO: Get from block when available
+        name: contract.name,
+        description: contract.description,
+        src44,
+      });
+
+      const { didDocument, didDocumentMetadata } = await builder.build();
+
+      return {
+        didResolutionMetadata: {
+          contentType: "application/did+ld+json",
+        },
+        didDocument,
+        didDocumentMetadata,
+      };
+    } catch (error) {
+      // Check if contract not found
+      if (error instanceof Error && error.message.includes("Unknown AT")) {
+        return this.createErrorResult(
+          "notFound",
+          `Contract ${parsedDid.identifier} not found`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Resolve a token/asset DID
+   */
+  private async resolveToken(
+    parsedDid: ParsedDid,
+  ): Promise<DidResolutionResult> {
+    try {
+      // Fetch asset from blockchain
+      const asset = await this.ledgerClient.asset.getAsset({
+        assetId: parsedDid.identifier,
+      });
+
+      let src44: Src44Data | undefined;
+      if (asset.description) {
+        src44 = this.getSrc44Data(asset.description);
+      }
+
+      // Build DID document using builder
+      const builder = new TokenDidDocumentBuilder(parsedDid, {
+        asset: asset.asset,
+        name: asset.name,
+        description: asset.description,
+        accountId: asset.account,
+        accountRS: asset.accountRS,
+        decimals: asset.decimals,
+        quantityQNT: asset.quantityQNT,
+        timestamp: 0, // TODO: Get from blockchain when available
+        height: 0, // TODO: Get from blockchain when available
+        src44,
+      });
+
+      const { didDocument, didDocumentMetadata } = await builder.build();
+
+      return {
+        didResolutionMetadata: {
+          contentType: "application/did+ld+json",
+        },
+        didDocument,
+        didDocumentMetadata,
+      };
+    } catch (error) {
+      // Check if asset not found
+      if (error instanceof Error && error.message.includes("Unknown asset")) {
+        return this.createErrorResult(
+          "notFound",
+          `Token ${parsedDid.identifier} not found`,
         );
       }
       throw error;
