@@ -1,0 +1,522 @@
+openapi: 3.1.0
+info:
+  title: Signum DID Resolver API
+  version: 0.1.0
+  description: |
+    W3C DID Resolution HTTP(S) Binding for Signum Network
+
+    This API implements the W3C DID Resolution specification for resolving Decentralized Identifiers (DIDs)
+    on the Signum blockchain. It supports multiple entity types including accounts, transactions, aliases,
+    smart contracts, and tokens.
+
+    ## DID Format
+
+    ```
+    did:signum:[network]:[type]:[identifier]
+    ```
+
+    - **network**: `mainnet` (default, can be omitted) or `testnet`
+    - **type**: `acc`, `tx`, `alias`, `contract`, `token`
+    - **identifier**: Numeric ID, RS-address, or name (for aliases)
+
+    ## Supported DID Types
+
+    - **Account (acc)**: `did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z` or `did:signum:acc:16107620026796983538`
+    - **Transaction (tx)**: `did:signum:tx:12345678901234567890`
+    - **Alias**: `did:signum:alias:signum:myalias` or `did:signum:alias:12345678901234567890`
+    - **Contract**: `did:signum:contract:12345678901234567890`
+    - **Token**: `did:signum:token:12345678901234567890`
+
+    ## SRC44 Support
+
+    The resolver supports SRC44 (Signum Request for Comments 44) structured data descriptors
+    embedded in account descriptions, transaction messages, alias URIs, contract descriptions,
+    and token descriptions.
+
+  contact:
+    name: Signum Network
+    url: https://signum.network
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://did.signum.network
+    description: Production server
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  /api/identifiers/{did}:
+    get:
+      summary: Resolve a DID
+      description: |
+        Resolves a Decentralized Identifier (DID) to a DID Document according to the
+        W3C DID Resolution specification.
+
+        The DID should be URL-encoded if it contains special characters (colons will be encoded as %3A).
+      operationId: resolveDid
+      tags:
+        - DID Resolution
+      parameters:
+        - name: did
+          in: path
+          required: true
+          description: The DID to resolve (URL-encoded)
+          schema:
+            type: string
+            pattern: "^did:signum:(mainnet:|testnet:)?(acc|tx|alias|contract|token):.+"
+          examples:
+            account:
+              value: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+              summary: Account DID with RS address
+            accountNumeric:
+              value: "did:signum:acc:16107620026796983538"
+              summary: Account DID with numeric ID
+            transaction:
+              value: "did:signum:tx:12345678901234567890"
+              summary: Transaction DID
+            alias:
+              value: "did:signum:alias:signum:myalias"
+              summary: Alias DID with TLD and name
+            aliasNumeric:
+              value: "did:signum:alias:12345678901234567890"
+              summary: Alias DID with numeric ID
+            contract:
+              value: "did:signum:contract:12345678901234567890"
+              summary: Smart contract DID
+            token:
+              value: "did:signum:token:12345678901234567890"
+              summary: Token/Asset DID
+            testnet:
+              value: "did:signum:testnet:acc:TS-XXXX-XXXX-XXXX-XXXXX"
+              summary: Testnet account DID
+        - name: Accept
+          in: header
+          required: false
+          description: Preferred content type for the response
+          schema:
+            type: string
+            enum:
+              - application/did+ld+json
+              - application/did+json
+              - application/json
+            default: application/did+ld+json
+      responses:
+        "200":
+          description: DID successfully resolved
+          headers:
+            Content-Type:
+              description: Content type of the response
+              schema:
+                type: string
+                enum:
+                  - application/did+ld+json
+                  - application/did+json
+                  - application/json
+            Cache-Control:
+              description: Caching directives
+              schema:
+                type: string
+              examples:
+                immutable:
+                  value: "public, max-age=31536000, immutable"
+                  summary: Immutable DID (transaction, token)
+                mutable:
+                  value: "public, max-age=120, s-maxage=120"
+                  summary: Mutable DID (account, alias, contract)
+          content:
+            application/did+ld+json:
+              schema:
+                $ref: "#/components/schemas/DidResolutionResult"
+              examples:
+                accountWithKey:
+                  $ref: "#/components/examples/AccountDidResolved"
+                transaction:
+                  $ref: "#/components/examples/TransactionDidResolved"
+                alias:
+                  $ref: "#/components/examples/AliasDidResolved"
+                contract:
+                  $ref: "#/components/examples/ContractDidResolved"
+                token:
+                  $ref: "#/components/examples/TokenDidResolved"
+        "400":
+          description: Invalid DID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DidResolutionError"
+              example:
+                didResolutionMetadata:
+                  error: invalidDid
+                  message: "Invalid DID format. Expected: did:signum:[network]:[type]:[identifier]"
+                didDocument: null
+                didDocumentMetadata: {}
+        "404":
+          description: DID not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DidResolutionError"
+              example:
+                didResolutionMetadata:
+                  error: notFound
+                  message: "Account S-XXXX-XXXX-XXXX-XXXXX not found"
+                didDocument: null
+                didDocumentMetadata: {}
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DidResolutionError"
+
+    options:
+      summary: CORS preflight
+      description: Handle CORS preflight requests
+      operationId: corsOptions
+      tags:
+        - CORS
+      responses:
+        "200":
+          description: CORS headers
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+
+components:
+  schemas:
+    DidResolutionResult:
+      type: object
+      required:
+        - didResolutionMetadata
+        - didDocument
+        - didDocumentMetadata
+      properties:
+        didResolutionMetadata:
+          $ref: "#/components/schemas/DidResolutionMetadata"
+        didDocument:
+          oneOf:
+            - $ref: "#/components/schemas/DidDocument"
+            - type: "null"
+        didDocumentMetadata:
+          $ref: "#/components/schemas/DidDocumentMetadata"
+
+    DidResolutionMetadata:
+      type: object
+      properties:
+        contentType:
+          type: string
+          example: application/did+ld+json
+        error:
+          type: string
+          enum:
+            - invalidDid
+            - notFound
+            - representationNotSupported
+            - methodNotSupported
+            - invalidDidDocument
+            - internalError
+        message:
+          type: string
+
+    DidDocument:
+      type: object
+      required:
+        - "@context"
+        - id
+      properties:
+        "@context":
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          example:
+            - https://www.w3.org/ns/did/v1
+            - https://w3id.org/security/suites/ed25519-2020/v1
+        id:
+          type: string
+          pattern: "^did:signum:"
+          example: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+        controller:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          example: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+        alsoKnownAs:
+          type: array
+          items:
+            type: string
+          example:
+            - "did:signum:acc:16107620026796983538"
+        verificationMethod:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationMethod"
+        authentication:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/VerificationMethod"
+        assertionMethod:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/VerificationMethod"
+        keyAgreement:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/VerificationMethod"
+        capabilityInvocation:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/VerificationMethod"
+        capabilityDelegation:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/VerificationMethod"
+        service:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceEndpoint"
+        src44:
+          type: object
+          description: SRC44 structured data descriptor (Signum-specific)
+          properties:
+            vs:
+              type: integer
+              example: 1
+            nm:
+              type: string
+              example: "Product Name"
+            ds:
+              type: string
+              example: "Product description"
+          additionalProperties: true
+
+    VerificationMethod:
+      type: object
+      required:
+        - id
+        - type
+        - controller
+      properties:
+        id:
+          type: string
+          example: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z#key-1"
+        type:
+          type: string
+          example: Ed25519VerificationKey2020
+        controller:
+          type: string
+          example: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+        publicKeyMultibase:
+          type: string
+          example: "f497d559d18d989b8e2d729eb6f69b70c1ddc3e554f75bef3ed2716a4b2121902"
+        publicKeyBase58:
+          type: string
+
+    ServiceEndpoint:
+      type: object
+      required:
+        - id
+        - type
+        - serviceEndpoint
+      properties:
+        id:
+          type: string
+          example: "did:signum:token:12345678901234567890#token-info"
+        type:
+          type: string
+          example: TokenService
+        serviceEndpoint:
+          oneOf:
+            - type: string
+            - type: object
+          example:
+            name: MyToken
+            decimals: 8
+            totalSupply: "100000000000000"
+
+    DidDocumentMetadata:
+      type: object
+      properties:
+        created:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updated:
+          type: string
+          format: date-time
+        deactivated:
+          type: boolean
+        versionId:
+          type: string
+        blockHeight:
+          type: integer
+          description: Block height where the DID was created (Signum-specific)
+          example: 1234567
+        confirmations:
+          type: integer
+          description: Number of confirmations (Signum-specific)
+          example: 10
+        immutable:
+          type: boolean
+          description: Whether this DID is immutable
+          example: true
+
+    DidResolutionError:
+      type: object
+      required:
+        - didResolutionMetadata
+        - didDocument
+        - didDocumentMetadata
+      properties:
+        didResolutionMetadata:
+          type: object
+          required:
+            - error
+          properties:
+            error:
+              type: string
+            message:
+              type: string
+        didDocument:
+          type: "null"
+        didDocumentMetadata:
+          type: object
+
+  examples:
+    AccountDidResolved:
+      summary: Resolved Account DID
+      value:
+        didResolutionMetadata:
+          contentType: application/did+ld+json
+        didDocument:
+          "@context":
+            - https://www.w3.org/ns/did/v1
+            - https://w3id.org/security/suites/ed25519-2020/v1
+          id: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+          alsoKnownAs:
+            - "did:signum:acc:16107620026796983538"
+          verificationMethod:
+            - id: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z#key-1"
+              type: Ed25519VerificationKey2020
+              controller: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+              publicKeyMultibase: f497d559d18d989b8e2d729eb6f69b70c1ddc3e554f75bef3ed2716a4b2121902
+          authentication:
+            - "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z#key-1"
+        didDocumentMetadata:
+          immutable: false
+
+    TransactionDidResolved:
+      summary: Resolved Transaction DID
+      value:
+        didResolutionMetadata:
+          contentType: application/did+ld+json
+        didDocument:
+          "@context":
+            - https://www.w3.org/ns/did/v1
+            - https://w3id.org/security/suites/ed25519-2020/v1
+          id: "did:signum:tx:12345678901234567890"
+          controller: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+          verificationMethod:
+            - id: "did:signum:tx:12345678901234567890#creator"
+              type: Ed25519VerificationKey2020
+              controller: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z"
+              publicKeyMultibase: fa1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+        didDocumentMetadata:
+          created: "2024-01-15T10:30:00.000Z"
+          blockHeight: 1234567
+          confirmations: 10
+          immutable: true
+
+    AliasDidResolved:
+      summary: Resolved Alias DID
+      value:
+        didResolutionMetadata:
+          contentType: application/did+ld+json
+        didDocument:
+          "@context":
+            - https://www.w3.org/ns/did/v1
+          id: "did:signum:alias:signum:myalias"
+          controller: "did:signum:acc:S-ABCD-EFGH-IJKL-MNOPQ"
+          alsoKnownAs:
+            - "did:signum:alias:12345678901234567890"
+        didDocumentMetadata:
+          created: "2024-01-15T10:30:00.000Z"
+          immutable: false
+
+    ContractDidResolved:
+      summary: Resolved Contract DID
+      value:
+        didResolutionMetadata:
+          contentType: application/did+ld+json
+        didDocument:
+          "@context":
+            - https://www.w3.org/ns/did/v1
+          id: "did:signum:contract:12345678901234567890"
+          controller: "did:signum:acc:S-CREA-TOR-ADDR-ESSID"
+          alsoKnownAs:
+            - "did:signum:contract:S-CONT-RACT-ADDR-ESSID"
+        didDocumentMetadata:
+          created: "2024-01-15T10:30:00.000Z"
+          blockHeight: 1234567
+          immutable: false
+
+    TokenDidResolved:
+      summary: Resolved Token DID
+      value:
+        didResolutionMetadata:
+          contentType: application/did+ld+json
+        didDocument:
+          "@context":
+            - https://www.w3.org/ns/did/v1
+          id: "did:signum:token:12345678901234567890"
+          controller: "did:signum:acc:S-ISSU-ER-ADDR-ESSID"
+          service:
+            - id: "did:signum:token:12345678901234567890#token-info"
+              type: TokenService
+              serviceEndpoint:
+                name: MyToken
+                decimals: 8
+                totalSupply: "100000000000000"
+        didDocumentMetadata:
+          created: "2024-01-15T10:30:00.000Z"
+          blockHeight: 1234567
+          immutable: true
+
+tags:
+  - name: DID Resolution
+    description: W3C DID Resolution operations
+  - name: CORS
+    description: Cross-Origin Resource Sharing
