@@ -231,6 +231,56 @@ describe("DidParser", () => {
         expect(result.did).toBe("did:signum:tx:12345678901234567890");
       });
     });
+
+    describe("fragment handling", () => {
+      it("should strip fragment from account DID with verification method", () => {
+        const result = parser.parse(
+          "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z#key-1",
+        );
+        expect(result).toEqual({
+          did: "did:signum:acc:S-9K9L-4CB5-88Y5-F5G4Z",
+          method: "signum",
+          network: "mainnet",
+          type: "acc",
+          identifier: "S-9K9L-4CB5-88Y5-F5G4Z",
+        });
+      });
+
+      it("should strip fragment from transaction DID", () => {
+        const result = parser.parse("did:signum:tx:12345678901234567890#key-1");
+        expect(result).toEqual({
+          did: "did:signum:tx:12345678901234567890",
+          method: "signum",
+          network: "mainnet",
+          type: "tx",
+          identifier: "12345678901234567890",
+        });
+      });
+
+      it("should strip fragment from alias DID", () => {
+        const result = parser.parse("did:signum:alias:web3:ohager#service-1");
+        expect(result).toEqual({
+          did: "did:signum:alias:web3:ohager",
+          method: "signum",
+          network: "mainnet",
+          type: "alias",
+          identifier: "web3:ohager",
+        });
+      });
+
+      it("should strip fragment from testnet DID", () => {
+        const result = parser.parse(
+          "did:signum:testnet:acc:S-9K9L-4CB5-88Y5-F5G4Z#key-2",
+        );
+        expect(result).toEqual({
+          did: "did:signum:testnet:acc:S-9K9L-4CB5-88Y5-F5G4Z",
+          method: "signum",
+          network: "testnet",
+          type: "acc",
+          identifier: "S-9K9L-4CB5-88Y5-F5G4Z",
+        });
+      });
+    });
   });
 
   describe("isValid()", () => {

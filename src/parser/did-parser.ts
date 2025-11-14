@@ -42,7 +42,7 @@ export class DidParser {
    * Network is optional (defaults to mainnet)
    */
   private static readonly DID_REGEX =
-    /^did:signum:(?:(?<network>mainnet|testnet|stagenet):)?(?<type>tx|acc|alias|contract|token):(?<identifier>.+)$/;
+    /^did:signum:(?:(?<network>mainnet|testnet):)?(?<type>tx|acc|alias|contract|token):(?<identifier>.+)$/;
 
   /**
    * Valid Signum networks
@@ -91,12 +91,15 @@ export class DidParser {
       throw new DidParseError('DID must start with "did:"', trimmedDid);
     }
 
-    const match = trimmedDid.match(DidParser.DID_REGEX);
+    // Strip fragment (everything after #) - fragments are processed client-side
+    const didWithoutFragment = trimmedDid.split("#")[0];
+
+    const match = didWithoutFragment.match(DidParser.DID_REGEX);
 
     if (!match || !match.groups) {
       throw new DidParseError(
         "Invalid Signum DID format. Expected: did:signum:[network]:[type]:[identifier]",
-        trimmedDid,
+        didWithoutFragment,
       );
     }
 
@@ -108,24 +111,30 @@ export class DidParser {
 
     // Validate network
     if (!DidParser.VALID_NETWORKS.includes(parsedNetwork)) {
-      throw new DidParseError(`Invalid network: ${parsedNetwork}`, trimmedDid);
+      throw new DidParseError(
+        `Invalid network: ${parsedNetwork}`,
+        didWithoutFragment,
+      );
     }
 
     // Validate type
     if (!DidParser.VALID_TYPES.includes(parsedType)) {
-      throw new DidParseError(`Invalid type: ${parsedType}`, trimmedDid);
+      throw new DidParseError(
+        `Invalid type: ${parsedType}`,
+        didWithoutFragment,
+      );
     }
 
     // Validate identifier is not empty
     if (!identifier || identifier.trim().length === 0) {
-      throw new DidParseError("Identifier cannot be empty", trimmedDid);
+      throw new DidParseError("Identifier cannot be empty", didWithoutFragment);
     }
 
     // Type-specific identifier validation
-    this.validateIdentifier(parsedType, identifier, trimmedDid);
+    this.validateIdentifier(parsedType, identifier, didWithoutFragment);
 
     return {
-      did: trimmedDid,
+      did: didWithoutFragment,
       method: "signum",
       network: parsedNetwork,
       type: parsedType,
